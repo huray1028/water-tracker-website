@@ -629,7 +629,7 @@
         <div class="achievement-summary">
           <div class="summary-box"><span>累積達標</span><strong id="allGoalDays">0 天</strong></div>
           <div class="summary-box"><span>最長連續達標</span><strong id="longestStreak">0 天</strong></div>
-          <div class="summary-box"><span>已獲得徽章</span><strong id="unlockedCount">0 / 6</strong></div>
+          <div class="summary-box"><span>已獲得徽章</span><strong id="unlockedCount">0 / 7</strong></div>
         </div>
         <h3 class="subheading">我的徽章</h3>
         <div class="badge-grid" id="badgeGrid"></div>
@@ -881,6 +881,7 @@
       }
 
       function achievementStats() {
+        const totalRecords = Object.values(state.days).reduce((sum, day) => sum + (day?.records || []).length, 0);
         const completedKeys = Object.keys(state.days).filter((key) => dayTotal(state.days[key]) >= dayGoal(state.days[key])).sort();
         let longest = 0;
         let current = 0;
@@ -894,11 +895,12 @@
         });
         const perMonth = {};
         completedKeys.forEach((key) => { const month = key.slice(0, 7); perMonth[month] = (perMonth[month] || 0) + 1; });
-        return { completed: completedKeys.length, longest, bestMonth: Math.max(0, ...Object.values(perMonth)) };
+        return { totalRecords, completed: completedKeys.length, longest, bestMonth: Math.max(0, ...Object.values(perMonth)) };
       }
 
       function badgeDefinitions(stats = achievementStats()) {
         return [
+          { id: 'first-record', icon: '🥤', name: '初次補水', description: '完成第一筆喝水紀錄', value: stats.totalRecords, target: 1 },
           { id: 'first-goal', icon: '💧', name: '第一滴榮耀', description: '完成第一個每日喝水目標', value: stats.completed, target: 1 },
           { id: 'three-streak', icon: '🌊', name: '三日水波', description: '連續 3 天完成每日目標', value: stats.longest, target: 3 },
           { id: 'seven-streak', icon: '🏆', name: '一週冠軍', description: '連續 7 天完成每日目標', value: stats.longest, target: 7 },
@@ -965,7 +967,9 @@
         render();
         showToast(`已記錄 ${formatNumber(amount)}ml！`);
         const newlyUnlocked = badgeDefinitions().filter((badge) => badge.value >= badge.target && !beforeUnlocked.has(badge.id));
-        if (before < goal && totalToday() >= goal && !ensureToday().celebrated) celebrate(newlyUnlocked);
+        const reachedGoal = before < goal && totalToday() >= goal;
+        if (reachedGoal && !ensureToday().celebrated) celebrate(newlyUnlocked, true);
+        else if (newlyUnlocked.length) celebrate(newlyUnlocked, false);
       }
 
       function validateCustom() {
@@ -1031,13 +1035,13 @@
         elements.confirmDialog.showModal();
       }
 
-      function celebrate(newlyUnlocked = []) {
-        ensureToday().celebrated = true;
+      function celebrate(newlyUnlocked = [], reachedGoal = true) {
+        if (reachedGoal) ensureToday().celebrated = true;
         saveState();
         $('#celebrationTitle').textContent = newlyUnlocked.length ? '新徽章解鎖！' : '今日目標達成！';
         const badgeNames = newlyUnlocked.map((badge) => `「${badge.name}」`).join('、');
         elements.celebrationCopy.textContent = newlyUnlocked.length
-          ? `你今天已喝了 ${formatNumber(totalToday())}ml，獲得 ${badgeNames} 徽章！`
+          ? `${reachedGoal ? `你今天已喝了 ${formatNumber(totalToday())}ml，` : ''}獲得 ${badgeNames} 徽章！`
           : `你今天已喝了 ${formatNumber(totalToday())}ml，成就進度已更新！`;
         elements.celebrationDialog.showModal();
         if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
