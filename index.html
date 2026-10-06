@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#087cbe">
+  <meta name="description" content="依照個人資料提供參考目標，記錄每日喝水進度。">
+  <title>水滴日記｜每日喝水紀錄器</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%230b8ed8' d='M32 4C24 17 12 29 12 42a20 20 0 0 0 40 0C52 29 40 17 32 4Z'/%3E%3Cpath fill='%23b9edff' d='M23 42c0-5 3-10 7-15-8 6-12 12-12 17 0 7 6 12 13 12-5-3-8-8-8-14Z'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --ocean-900: #073b5b;
+      --ocean-800: #07547e;
+      --ocean-700: #087cbe;
+      --ocean-600: #0b92dd;
+      --ocean-500: #23a9eb;
+      --ocean-300: #7ed7f7;
+      --ocean-200: #b9edff;
+      --ocean-100: #e5f8ff;
+      --foam: #f7fdff;
+      --ink: #153447;
+      --muted: #657b89;
+      --line: #cce9f4;
+      --success: #087f6d;
+      --danger: #c63737;
+      --shadow: 0 22px 65px rgba(7, 84, 126, .16);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { color-scheme: light; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 12% 8%, rgba(126, 215, 247, .38), transparent 28rem),
+        radial-gradient(circle at 90% 80%, rgba(35, 169, 235, .20), transparent 30rem),
+        linear-gradient(145deg, #f5fcff 0%, #e8f8ff 48%, #f8fdff 100%);
+    }
+
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible {
+      outline: 3px solid rgba(11, 146, 221, .30);
+      outline-offset: 3px;
+    }
+
+    .hidden { display: none !important; }
+
+    .shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 26px 0 42px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 48px;
+      height: 48px;
+      color: white;
+      border-radius: 17px;
+      background: linear-gradient(145deg, var(--ocean-500), var(--ocean-700));
+      box-shadow: 0 10px 25px rgba(8, 124, 190, .25);
+    }
+    .brand-mark svg { width: 27px; height: 27px; }
+    .brand h1 { margin: 0; color: var(--ocean-900); font-size: 1.35rem; letter-spacing: .04em; }
+    .brand p { margin: 3px 0 0; color: var(--muted); font-size: .84rem; }
+
+    .top-actions { display: flex; align-items: center; gap: 12px; }
+    .today { color: var(--muted); font-size: .92rem; }
+
+    .icon-button, .secondary-button, .primary-button, .quick-button, .danger-button {
+      min-height: 44px;
+      border: 0;
+      border-radius: 13px;
+      font-weight: 700;
+      transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+    }
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(1px) scale(.98); }
+    button:disabled { cursor: not-allowed; opacity: .48; transform: none; }
+
+    .icon-button, .secondary-button {
+      padding: 0 16px;
+      color: var(--ocean-800);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, .80);
+    }
+    .icon-button { display: inline-flex; align-items: center; gap: 8px; }
+    .icon-button svg { width: 19px; height: 19px; }
+
+    .primary-button {
+      padding: 0 20px;
+      color: white;
+      background: linear-gradient(135deg, var(--ocean-600), var(--ocean-700));
+      box-shadow: 0 10px 22px rgba(8, 124, 190, .22);
+    }
+    .primary-button:hover { box-shadow: 0 13px 28px rgba(8, 124, 190, .30); }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: minmax(390px, .95fr) minmax(420px, 1.05fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .view-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+      width: min(560px, 100%);
+      margin: 0 auto 24px;
+      padding: 6px;
+      border: 1px solid rgba(173, 220, 238, .8);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, .72);
+      box-shadow: 0 12px 30px rgba(7, 84, 126, .10);
+      backdrop-filter: blur(12px);
+    }
+    .view-tab {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      min-height: 46px;
+      padding: 0 14px;
+      color: var(--muted);
+      border: 0;
+      border-radius: 13px;
+      background: transparent;
+      font-weight: 800;
+    }
+    .view-tab svg { width: 19px; height: 19px; }
+    .view-tab.active { color: white; background: linear-gradient(135deg, var(--ocean-600), var(--ocean-700)); box-shadow: 0 8px 18px rgba(8,124,190,.23); }
+    .page-view[hidden] { display: none; }
+
+    .page-card { padding: 28px; }
+    .page-title { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 24px; }
+    .page-title h2 { margin: 0; color: var(--ocean-900); font-size: 1.5rem; }
+    .page-title p { margin: 6px 0 0; color: var(--muted); line-height: 1.55; }
+    .month-controls { display: flex; align-items: center; gap: 8px; }
+    .month-label { min-width: 125px; color: var(--ocean-900); text-align: center; font-weight: 800; }
+    .circle-button { display: grid; place-items: center; width: 42px; height: 42px; color: var(--ocean-800); border: 1px solid var(--line); border-radius: 13px; background: white; }
+    .circle-button svg { width: 18px; height: 18px; }
+
+    .monthly-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+    .stat-box { padding: 16px; border: 1px solid #d7edf6; border-radius: 16px; background: linear-gradient(145deg, #fbfeff, #edfaff); }
+    .stat-box span { display: block; color: var(--muted); font-size: .82rem; }
+    .stat-box strong { display: block; margin-top: 5px; color: var(--ocean-800); font-size: 1.3rem; }
+
+    .calendar-layout { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 18px; align-items: start; }
+    .calendar { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 7px; }
+    .weekday { padding: 8px 2px; color: var(--muted); text-align: center; font-size: .78rem; font-weight: 800; }
+    .calendar-day {
+      position: relative;
+      aspect-ratio: 1;
+      min-height: 62px;
+      padding: 9px;
+      color: var(--ink);
+      text-align: left;
+      border: 1px solid #d9edf5;
+      border-radius: 14px;
+      background: #fbfeff;
+    }
+    .calendar-day:hover { border-color: var(--ocean-500); }
+    .calendar-day.selected { outline: 3px solid rgba(11,146,221,.26); border-color: var(--ocean-600); }
+    .calendar-day.today-day::after { position: absolute; top: 8px; right: 8px; width: 7px; height: 7px; content: ""; border-radius: 50%; background: var(--ocean-700); }
+    .calendar-day.level-1 { background: #e4f7ff; }
+    .calendar-day.level-2 { background: #bdeeff; }
+    .calendar-day.level-3 { color: #064567; background: #78d6f5; }
+    .calendar-day.level-4 { color: white; border-color: #0781c5; background: #0b92dd; }
+    .calendar-day small { position: absolute; right: 8px; bottom: 7px; color: inherit; font-size: .7rem; opacity: .82; }
+    .calendar-blank { aspect-ratio: 1; }
+    .day-detail { min-height: 290px; padding: 20px; border-radius: 20px; background: var(--ocean-100); }
+    .day-detail h3 { margin: 0; color: var(--ocean-900); font-size: 1rem; }
+    .day-total { margin: 18px 0 5px; color: var(--ocean-800); font-size: 2rem; font-weight: 900; }
+    .day-status { margin: 0 0 16px; color: var(--muted); font-size: .84rem; }
+    .mini-records { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+    .mini-records li { display: flex; justify-content: space-between; padding: 9px 10px; border-radius: 10px; background: rgba(255,255,255,.78); font-size: .82rem; }
+    .mini-empty { color: var(--muted); line-height: 1.6; }
+
+    .achievement-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 22px; }
+    .summary-box { padding: 18px; color: white; border-radius: 18px; background: linear-gradient(145deg, var(--ocean-700), var(--ocean-900)); }
+    .summary-box:nth-child(2) { background: linear-gradient(145deg, #08a38d, #087264); }
+    .summary-box:nth-child(3) { color: var(--ocean-900); background: linear-gradient(145deg, #ffe697, #ffca5c); }
+    .summary-box span { display: block; font-size: .8rem; opacity: .82; }
+    .summary-box strong { display: block; margin-top: 5px; font-size: 1.5rem; }
+
+    .subheading { margin: 26px 0 13px; color: var(--ocean-900); font-size: 1.05rem; }
+    .badge-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .badge-card { padding: 18px; border: 1px solid #d7edf6; border-radius: 18px; background: #fbfeff; }
+    .badge-card.locked { filter: grayscale(.85); opacity: .62; }
+    .badge-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+    .badge-icon { display: grid; place-items: center; width: 50px; height: 50px; border-radius: 16px; background: linear-gradient(145deg, #fff0ae, #ffc95c); font-size: 1.65rem; box-shadow: inset 0 0 0 1px rgba(174,116,0,.15); }
+    .unlock-pill { padding: 5px 8px; color: var(--success); border-radius: 99px; background: #dcf8f0; font-size: .7rem; font-weight: 800; }
+    .badge-card h4 { margin: 13px 0 5px; color: var(--ocean-900); }
+    .badge-card p { min-height: 40px; margin: 0; color: var(--muted); font-size: .8rem; line-height: 1.5; }
+    .badge-progress { height: 6px; margin: 13px 0 6px; overflow: hidden; border-radius: 99px; background: #e2edf1; }
+    .badge-progress i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ffd166, #f2a900); }
+    .badge-card small { color: var(--muted); }
+
+    .heatmap-wrap { padding: 18px; overflow: hidden; border: 1px solid #d7edf6; border-radius: 18px; background: #fbfeff; }
+    .heatmap-head { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 15px; }
+    .heatmap-head strong { color: var(--ocean-900); }
+    .year-controls { display: flex; align-items: center; gap: 7px; }
+    .heatmap-scroll { overflow-x: auto; padding-bottom: 7px; }
+    .heatmap-grid { display: grid; grid-template-rows: repeat(7, 13px); grid-auto-flow: column; grid-auto-columns: 13px; gap: 4px; width: max-content; min-width: 100%; }
+    .heat-cell { width: 13px; height: 13px; border-radius: 3px; background: #e7f0f3; }
+    .heat-cell.level-1 { background: #cdefff; }
+    .heat-cell.level-2 { background: #89daf7; }
+    .heat-cell.level-3 { background: #35b4ec; }
+    .heat-cell.level-4 { background: #087cbe; }
+    .heat-cell.blank { visibility: hidden; }
+    .heat-legend { display: flex; justify-content: flex-end; align-items: center; gap: 5px; margin-top: 11px; color: var(--muted); font-size: .72rem; }
+    .heat-legend i { width: 13px; height: 13px; border-radius: 3px; background: #e7f0f3; }
+    .heat-legend i:nth-of-type(2) { background: #cdefff; }
+    .heat-legend i:nth-of-type(3) { background: #89daf7; }
+    .heat-legend i:nth-of-type(4) { background: #35b4ec; }
+    .heat-legend i:nth-of-type(5) { background: #087cbe; }
+
+    .card {
+      border: 1px solid rgba(173, 220, 238, .75);
+      border-radius: var(--radius-xl);
+      background: rgba(255, 255, 255, .80);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .progress-card {
+      position: sticky;
+      top: 20px;
+      min-height: 650px;
+      overflow: hidden;
+      padding: 32px;
+      text-align: center;
+    }
+    .progress-card::before {
+      position: absolute;
+      inset: 0 0 auto;
+      height: 190px;
+      content: "";
+      background: linear-gradient(150deg, rgba(126, 215, 247, .22), rgba(229, 248, 255, .05));
+      pointer-events: none;
+    }
+    .eyebrow { position: relative; margin: 0; color: var(--ocean-700); font-size: .84rem; font-weight: 800; letter-spacing: .18em; }
+    .progress-card h2 { position: relative; margin: 9px 0 0; font-size: 1.42rem; }
+
+    .glass-wrap {
+      position: relative;
+      width: 198px;
+      height: 250px;
+      margin: 28px auto 20px;
+      filter: drop-shadow(0 20px 20px rgba(8, 124, 190, .18));
+    }
+    .glass {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      border: 8px solid rgba(7, 84, 126, .78);
+      border-top-width: 10px;
+      border-radius: 20px 20px 52px 52px;
+      background: rgba(255,255,255,.50);
+      clip-path: polygon(5% 0, 95% 0, 84% 100%, 16% 100%);
+    }
+    .water {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      height: 0%;
+      background: linear-gradient(180deg, #63d9ff 0%, #149fe6 58%, #087cbe 100%);
+      transition: height .8s cubic-bezier(.22,.8,.28,1);
+    }
+    .water::before, .water::after {
+      position: absolute;
+      top: -11px;
+      left: -10%;
+      width: 120%;
+      height: 24px;
+      content: "";
+      border-radius: 45%;
+      background: rgba(197, 244, 255, .78);
+      animation: wave 4s ease-in-out infinite;
+    }
+    .water::after { top: -6px; background: rgba(48, 184, 237, .5); animation-delay: -2s; }
+    @keyframes wave { 50% { transform: translateX(5%) rotate(1deg); } }
+
+    .glass-shine {
+      position: absolute;
+      z-index: 2;
+      top: 30px;
+      left: 37px;
+      width: 16px;
+      height: 86px;
+      border-radius: 20px;
+      background: rgba(255,255,255,.55);
+      transform: rotate(2deg);
+    }
+
+    .amount-line { display: flex; justify-content: center; align-items: baseline; gap: 7px; }
+    .amount-line strong { color: var(--ocean-900); font-size: clamp(2.25rem, 5vw, 3.4rem); line-height: 1; letter-spacing: -.04em; }
+    .amount-line span { color: var(--muted); font-size: 1rem; font-weight: 700; }
+    .progress-copy { margin: 10px 0 0; color: var(--muted); font-size: 1rem; }
+    .progress-copy strong { color: var(--ocean-700); }
+    .bar { height: 10px; margin: 25px 0 10px; overflow: hidden; border-radius: 99px; background: var(--ocean-100); }
+    .bar-fill { width: 0%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--ocean-300), var(--ocean-700)); transition: width .7s ease; }
+    .bar-labels { display: flex; justify-content: space-between; color: var(--muted); font-size: .82rem; }
+    .tip {
+      display: flex;
+      gap: 10px;
+      margin-top: 26px;
+      padding: 15px 16px;
+      color: var(--ocean-800);
+      text-align: left;
+      line-height: 1.55;
+      border-radius: 16px;
+      background: var(--ocean-100);
+    }
+    .tip svg { flex: 0 0 auto; width: 20px; height: 20px; margin-top: 2px; }
+
+    .right-column { display: grid; gap: 22px; }
+    .action-card, .history-card { padding: 28px; }
+    .section-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; }
+    .section-heading h2 { margin: 0; color: var(--ocean-900); font-size: 1.2rem; }
+    .section-heading span { color: var(--muted); font-size: .82rem; }
+
+    .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+    .quick-button {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      height: 68px;
+      color: var(--ocean-800);
+      border: 1px solid #a9dff3;
+      background: linear-gradient(145deg, #f7fdff, #dcf5ff);
+    }
+    .quick-button svg { width: 24px; height: 24px; color: var(--ocean-600); }
+    .quick-button strong { font-size: 1.1rem; }
+
+    .custom-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; margin-top: 14px; }
+    .input-unit { position: relative; }
+    .input-unit input {
+      width: 100%;
+      height: 50px;
+      padding: 0 55px 0 15px;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: white;
+    }
+    .input-unit span { position: absolute; top: 50%; right: 16px; color: var(--muted); transform: translateY(-50%); }
+    .field-error { min-height: 21px; margin: 7px 0 0; color: var(--danger); font-size: .84rem; }
+    input.invalid { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(198, 55, 55, .10); }
+
+    .history-card { min-height: 270px; }
+    .text-button {
+      padding: 7px;
+      color: var(--danger);
+      border: 0;
+      background: transparent;
+      font-weight: 700;
+    }
+    .records { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+    .record {
+      display: grid;
+      grid-template-columns: 42px 1fr auto;
+      align-items: center;
+      gap: 12px;
+      padding: 13px;
+      border: 1px solid #d9eef6;
+      border-radius: 15px;
+      background: #fbfeff;
+      animation: slideIn .3s ease both;
+    }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-8px); } }
+    .record-icon { display: grid; place-items: center; width: 42px; height: 42px; color: var(--ocean-600); border-radius: 13px; background: var(--ocean-100); }
+    .record-icon svg { width: 21px; height: 21px; }
+    .record strong { display: block; color: var(--ocean-900); }
+    .record time { color: var(--muted); font-size: .82rem; }
+    .delete-record { display: grid; place-items: center; width: 38px; height: 38px; color: #8b5660; border: 0; border-radius: 12px; background: #fff0f1; }
+    .delete-record svg { width: 18px; height: 18px; }
+    .empty-state { padding: 30px 10px; color: var(--muted); text-align: center; }
+    .empty-state svg { width: 46px; height: 46px; color: var(--ocean-300); }
+    .empty-state strong { display: block; margin: 10px 0 5px; color: var(--ocean-800); }
+
+    dialog {
+      width: min(550px, calc(100% - 28px));
+      max-height: calc(100vh - 40px);
+      padding: 0;
+      color: var(--ink);
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: #fbfeff;
+      box-shadow: 0 35px 90px rgba(7, 59, 91, .28);
+    }
+    dialog::backdrop { background: rgba(4, 38, 59, .55); backdrop-filter: blur(5px); }
+    .dialog-body { padding: 28px; }
+    .dialog-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 22px; }
+    .dialog-head h2 { margin: 0; color: var(--ocean-900); font-size: 1.42rem; }
+    .dialog-head p { margin: 6px 0 0; color: var(--muted); line-height: 1.55; }
+    .close-dialog { width: 40px; height: 40px; padding: 0; color: var(--muted); border: 0; border-radius: 12px; background: var(--ocean-100); font-size: 1.25rem; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .field label { display: block; margin-bottom: 7px; color: var(--ocean-900); font-size: .88rem; font-weight: 800; }
+    .field input { width: 100%; height: 48px; padding: 0 14px; border: 1px solid var(--line); border-radius: 12px; background: white; }
+    .field small { display: block; min-height: 19px; margin-top: 5px; color: var(--danger); }
+    .wide { grid-column: 1 / -1; }
+    .calculate-button { width: 100%; }
+    .recommendation {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding: 16px;
+      border-radius: 17px;
+      background: var(--ocean-100);
+    }
+    .recommendation div { padding: 5px 8px; }
+    .recommendation span { display: block; color: var(--muted); font-size: .78rem; }
+    .recommendation strong { display: block; margin-top: 4px; color: var(--ocean-800); font-size: 1.18rem; }
+    .goal-row { display: grid; grid-template-columns: 1fr auto; gap: 9px; align-items: end; }
+    .adopt-button { height: 48px; white-space: nowrap; }
+    .health-note { margin: 15px 0 0; color: var(--muted); font-size: .78rem; line-height: 1.6; }
+    .dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+
+    .confirm-copy { color: var(--muted); line-height: 1.65; }
+    .danger-button { padding: 0 18px; color: white; background: var(--danger); }
+
+    .celebration { text-align: center; }
+    .celebration-icon { font-size: 3.5rem; animation: bounce .8s ease infinite alternate; }
+    @keyframes bounce { to { transform: translateY(-8px) rotate(5deg); } }
+    .celebration h2 { margin: 12px 0 8px; color: var(--ocean-900); }
+    .celebration p { color: var(--muted); line-height: 1.6; }
+
+    .toast-region { position: fixed; z-index: 20; right: 20px; bottom: 20px; display: grid; gap: 10px; }
+    .toast { min-width: 245px; padding: 14px 17px; color: white; border-radius: 14px; background: var(--ocean-900); box-shadow: 0 15px 40px rgba(7,59,91,.28); animation: toastIn .25s ease both; }
+    .toast.error { background: var(--danger); }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(12px); } }
+
+    .confetti-piece { position: fixed; z-index: 30; top: -20px; width: 9px; height: 16px; border-radius: 3px; animation: fall 2.3s linear forwards; }
+    @keyframes fall { to { transform: translate3d(var(--drift), 105vh, 0) rotate(720deg); opacity: .75; } }
+
+    @media (max-width: 900px) {
+      .dashboard { grid-template-columns: 1fr; }
+      .progress-card { position: relative; top: 0; min-height: auto; }
+      .calendar-layout { grid-template-columns: 1fr; }
+      .day-detail { min-height: auto; }
+      .badge-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 560px) {
+      .shell { width: min(100% - 20px, 1180px); padding-top: 14px; }
+      .topbar { align-items: flex-start; }
+      .brand p, .today { display: none; }
+      .brand-mark { width: 43px; height: 43px; }
+      .icon-button { width: 44px; padding: 0; justify-content: center; }
+      .icon-button span { display: none; }
+      .progress-card, .action-card, .history-card { padding: 22px 18px; border-radius: 22px; }
+      .page-card { padding: 22px 14px; border-radius: 22px; }
+      .view-tab span { display: none; }
+      .page-title { flex-direction: column; }
+      .month-controls { width: 100%; justify-content: space-between; }
+      .monthly-stats, .achievement-summary { grid-template-columns: 1fr; }
+      .calendar { gap: 4px; }
+      .calendar-day { min-height: 43px; padding: 6px; border-radius: 10px; font-size: .78rem; }
+      .calendar-day small { display: none; }
+      .badge-grid { grid-template-columns: 1fr; }
+      .glass-wrap { width: 158px; height: 200px; margin-top: 22px; }
+      .custom-row { grid-template-columns: 1fr; }
+      .custom-row .primary-button { width: 100%; }
+      .form-grid, .recommendation { grid-template-columns: 1fr; }
+      .goal-row { grid-template-columns: 1fr; }
+      .dialog-body { padding: 22px 18px; }
+      .dialog-actions { flex-direction: column-reverse; }
+      .dialog-actions button { width: 100%; }
+      .toast-region { right: 10px; bottom: 10px; left: 10px; }
+      .toast { min-width: 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.3C9.7 6 5.3 10.5 5.3 15A6.7 6.7 0 0 0 18.7 15C18.7 10.5 14.3 6 12 2.3Zm-3.9 13c.4 2.2 1.8 3.5 4.1 4-3.1.5-5.5-1.5-5.5-4.3 0-1.5.8-3.1 2.1-4.8-.6 1.9-.9 3.6-.7 5.1Z"/></svg>
+        </div>
+        <div><h1>水滴日記</h1><p>每天多一點，身體更有精神</p></div>
+      </div>
+      <div class="top-actions">
+        <span class="today" id="todayLabel"></span>
+        <button class="icon-button" id="settingsButton" type="button" aria-label="開啟個人設定">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
+          <span>設定</span>
+        </button>
+      </div>
+    </header>
+
+    <nav class="view-tabs" role="tablist" aria-label="主要頁面">
+      <button class="view-tab active" type="button" role="tab" aria-selected="true" aria-controls="homeView" data-view="home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 11 12 3l9 8v9a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1v-9Z"/></svg><span>今日紀錄</span>
+      </button>
+      <button class="view-tab" type="button" role="tab" aria-selected="false" aria-controls="calendarView" data-view="calendar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><span>月曆紀錄</span>
+      </button>
+      <button class="view-tab" type="button" role="tab" aria-selected="false" aria-controls="achievementsView" data-view="achievements">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4Z"/><path d="M7 6H3v2a4 4 0 0 0 5 4M17 6h4v2a4 4 0 0 1-5 4"/></svg><span>成就獎盃</span>
+      </button>
+    </nav>
+
+    <section class="dashboard page-view" id="homeView" role="tabpanel" aria-label="今日喝水紀錄">
+      <article class="card progress-card">
+        <p class="eyebrow">TODAY'S HYDRATION</p>
+        <h2>今天的喝水進度</h2>
+        <div class="glass-wrap" aria-hidden="true">
+          <div class="glass"><div class="water" id="waterLevel"></div><div class="glass-shine"></div></div>
+        </div>
+        <div class="amount-line"><strong id="totalAmount">0</strong><span>ml</span></div>
+        <p class="progress-copy" id="progressCopy">目標 <strong>2,000ml</strong>，今天從第一杯開始</p>
+        <div class="bar" role="progressbar" id="progressBar" aria-label="今日喝水進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="bar-fill" id="barFill"></div></div>
+        <div class="bar-labels"><span id="percentLabel">0%</span><span id="remainingLabel">還差 2,000ml</span></div>
+        <div class="tip">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2a7 7 0 0 0-4 12.7V18h8v-3.3A7 7 0 0 0 12 2Z"/><path d="M9 22h6M9 18h6"/></svg>
+          <span id="tipText">把水放在看得到的地方，更容易記得補充水分。</span>
+        </div>
+      </article>
+
+      <div class="right-column">
+        <article class="card action-card">
+          <div class="section-heading"><h2>記一杯水</h2><span>選擇常用容量，或自行輸入</span></div>
+          <div class="quick-grid">
+            <button class="quick-button" type="button" data-amount="250">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 3h12l-1.5 18h-9L6 3Z"/><path d="M7 8h10"/></svg><strong>+250ml</strong>
+            </button>
+            <button class="quick-button" type="button" data-amount="500">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3h8l1 3v15H7V6l1-3Z"/><path d="M7 7h10M10 3v4"/></svg><strong>+500ml</strong>
+            </button>
+          </div>
+          <form id="customForm" novalidate>
+            <div class="custom-row">
+              <div class="input-unit"><input id="customAmount" type="number" inputmode="numeric" min="1" max="2000" step="1" placeholder="輸入喝水容量" aria-describedby="customError"><span>ml</span></div>
+              <button class="primary-button" type="submit">加入紀錄</button>
+            </div>
+            <p class="field-error" id="customError" aria-live="polite"></p>
+          </form>
+        </article>
+
+        <article class="card history-card">
+          <div class="section-heading">
+            <div><h2>今日紀錄</h2><span id="recordCount">共 0 筆</span></div>
+            <button class="text-button" id="clearButton" type="button" disabled>清除今日</button>
+          </div>
+          <ul class="records" id="recordList"></ul>
+          <div class="empty-state" id="emptyState">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 2.5C9.5 6.5 5 11 5 15.5a7 7 0 0 0 14 0C19 11 14.5 6.5 12 2.5Z"/><path d="M8.5 16c.4 1.8 1.5 2.9 3.3 3.3"/></svg>
+            <strong>今天還沒有喝水紀錄</strong><span>喝一杯水，開始今天的第一筆紀錄吧！</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="page-view" id="calendarView" role="tabpanel" aria-label="月曆喝水紀錄" hidden>
+      <article class="card page-card">
+        <div class="page-title">
+          <div><h2>月曆紀錄</h2><p>用顏色查看每天的完成程度，點選日期可以看到當天明細。</p></div>
+          <div class="month-controls">
+            <button class="circle-button" id="prevMonth" type="button" aria-label="上一個月"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button>
+            <span class="month-label" id="monthLabel"></span>
+            <button class="circle-button" id="nextMonth" type="button" aria-label="下一個月"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></button>
+          </div>
+        </div>
+        <div class="monthly-stats">
+          <div class="stat-box"><span>本月總飲水量</span><strong id="monthTotal">0ml</strong></div>
+          <div class="stat-box"><span>本月達標天數</span><strong id="monthGoalDays">0 天</strong></div>
+          <div class="stat-box"><span>有紀錄日平均</span><strong id="monthAverage">0ml</strong></div>
+        </div>
+        <div class="calendar-layout">
+          <div class="calendar" id="calendarGrid" aria-label="月份日曆"></div>
+          <aside class="day-detail" id="dayDetail" aria-live="polite"></aside>
+        </div>
+      </article>
+    </section>
+
+    <section class="page-view" id="achievementsView" role="tabpanel" aria-label="喝水成就與全年紀錄" hidden>
+      <article class="card page-card">
+        <div class="page-title"><div><h2>成就獎盃</h2><p>每天完成自己的飲水目標，就能逐步解鎖徽章。</p></div></div>
+        <div class="achievement-summary">
+          <div class="summary-box"><span>累積達標</span><strong id="allGoalDays">0 天</strong></div>
+          <div class="summary-box"><span>最長連續達標</span><strong id="longestStreak">0 天</strong></div>
+          <div class="summary-box"><span>已獲得徽章</span><strong id="unlockedCount">0 / 6</strong></div>
+        </div>
+        <h3 class="subheading">我的徽章</h3>
+        <div class="badge-grid" id="badgeGrid"></div>
+        <h3 class="subheading">全年喝水熱力圖</h3>
+        <div class="heatmap-wrap">
+          <div class="heatmap-head"><strong>每天的目標完成程度</strong><div class="year-controls"><button class="circle-button" id="prevYear" type="button" aria-label="上一年"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button><span class="month-label" id="yearLabel"></span><button class="circle-button" id="nextYear" type="button" aria-label="下一年"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></button></div></div>
+          <div class="heatmap-scroll"><div class="heatmap-grid" id="heatmapGrid" aria-label="全年喝水熱力圖"></div></div>
+          <div class="heat-legend"><span>較少</span><i></i><i></i><i></i><i></i><i></i><span>達標</span></div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <dialog id="profileDialog" aria-labelledby="profileTitle">
+    <form class="dialog-body" id="profileForm" novalidate>
+      <div class="dialog-head">
+        <div><h2 id="profileTitle">建立你的喝水目標</h2><p id="profileSubtitle">輸入身高和體重，我們會提供一個每日參考值。</p></div>
+        <button class="close-dialog" id="profileClose" type="button" aria-label="關閉設定">×</button>
+      </div>
+      <div class="form-grid">
+        <div class="field"><label for="heightInput">身高（公分）</label><input id="heightInput" type="number" inputmode="decimal" min="80" max="250" step="0.1" placeholder="例如 165"><small id="heightError"></small></div>
+        <div class="field"><label for="weightInput">體重（公斤）</label><input id="weightInput" type="number" inputmode="decimal" min="20" max="300" step="0.1" placeholder="例如 60"><small id="weightError"></small></div>
+        <button class="secondary-button calculate-button wide" id="calculateButton" type="button">計算建議量</button>
+        <div class="recommendation wide hidden" id="recommendation" aria-live="polite">
+          <div><span>每日參考目標</span><strong id="recommendedAmount">—</strong></div>
+          <div><span>BMI 參考值</span><strong id="bmiValue">—</strong></div>
+        </div>
+        <div class="field wide">
+          <label for="goalInput">每日目標（ml）</label>
+          <div class="goal-row"><input id="goalInput" type="number" inputmode="numeric" min="500" max="10000" step="1" placeholder="先計算建議量"><button class="secondary-button adopt-button hidden" id="adoptButton" type="button">採用建議值</button></div>
+          <small id="goalError"></small>
+        </div>
+      </div>
+      <p class="health-note">參考值以體重每公斤 30ml 估算，身高用於計算 BMI。實際需求會受活動量、天氣與健康狀況影響；如有心臟、腎臟或需限制飲水的情況，請依醫師指示設定。</p>
+      <div class="dialog-actions"><button class="secondary-button hidden" id="cancelProfile" type="button">取消</button><button class="primary-button" type="submit">儲存並開始記錄</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="confirmDialog" aria-labelledby="confirmTitle">
+    <div class="dialog-body">
+      <div class="dialog-head"><div><h2 id="confirmTitle">確認操作</h2><p class="confirm-copy" id="confirmMessage"></p></div></div>
+      <div class="dialog-actions"><button class="secondary-button" id="confirmCancel" type="button">取消</button><button class="danger-button" id="confirmAction" type="button">確定刪除</button></div>
+    </div>
+  </dialog>
+
+  <dialog id="celebrationDialog" aria-labelledby="celebrationTitle">
+    <div class="dialog-body celebration">
+      <div class="celebration-icon" aria-hidden="true">💧</div>
+      <h2 id="celebrationTitle">今日目標達成！</h2>
+      <p id="celebrationCopy">你今天已完成喝水目標，做得很好！</p>
+      <button class="primary-button" id="celebrationClose" type="button">繼續記錄</button>
+    </div>
+  </dialog>
+
+  <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const STORAGE_KEY = 'waterDiary.v1';
+      const DEFAULT_GOAL = 2000;
+      const $ = (selector) => document.querySelector(selector);
+      const $$ = (selector) => [...document.querySelectorAll(selector)];
+      const icons = {
+        drop: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5C9.5 6.5 5 11 5 15.5a7 7 0 0 0 14 0C19 11 14.5 6.5 12 2.5Z"/></svg>',
+        trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 15H6L5 6M10 11v6M14 11v6"/></svg>'
+      };
+
+      const elements = {
+        todayLabel: $('#todayLabel'), totalAmount: $('#totalAmount'), progressCopy: $('#progressCopy'),
+        progressBar: $('#progressBar'), barFill: $('#barFill'), percentLabel: $('#percentLabel'),
+        remainingLabel: $('#remainingLabel'), waterLevel: $('#waterLevel'), tipText: $('#tipText'),
+        recordList: $('#recordList'), recordCount: $('#recordCount'), emptyState: $('#emptyState'),
+        clearButton: $('#clearButton'), customForm: $('#customForm'), customAmount: $('#customAmount'),
+        customError: $('#customError'), settingsButton: $('#settingsButton'), profileDialog: $('#profileDialog'),
+        profileForm: $('#profileForm'), profileTitle: $('#profileTitle'), profileSubtitle: $('#profileSubtitle'),
+        profileClose: $('#profileClose'), cancelProfile: $('#cancelProfile'), heightInput: $('#heightInput'),
+        weightInput: $('#weightInput'), goalInput: $('#goalInput'), heightError: $('#heightError'),
+        weightError: $('#weightError'), goalError: $('#goalError'), calculateButton: $('#calculateButton'),
+        recommendation: $('#recommendation'), recommendedAmount: $('#recommendedAmount'), bmiValue: $('#bmiValue'),
+        adoptButton: $('#adoptButton'), confirmDialog: $('#confirmDialog'), confirmMessage: $('#confirmMessage'),
+        confirmAction: $('#confirmAction'), confirmCancel: $('#confirmCancel'), celebrationDialog: $('#celebrationDialog'),
+        celebrationCopy: $('#celebrationCopy'), celebrationClose: $('#celebrationClose'), toastRegion: $('#toastRegion'),
+        calendarGrid: $('#calendarGrid'), monthLabel: $('#monthLabel'), monthTotal: $('#monthTotal'),
+        monthGoalDays: $('#monthGoalDays'), monthAverage: $('#monthAverage'), dayDetail: $('#dayDetail'),
+        prevMonth: $('#prevMonth'), nextMonth: $('#nextMonth'), badgeGrid: $('#badgeGrid'),
+        allGoalDays: $('#allGoalDays'), longestStreak: $('#longestStreak'), unlockedCount: $('#unlockedCount'),
+        heatmapGrid: $('#heatmapGrid'), yearLabel: $('#yearLabel'), prevYear: $('#prevYear'), nextYear: $('#nextYear')
+      };
+
+      let state = loadState();
+      let pendingConfirm = null;
+      let currentRecommendation = null;
+      let calendarDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      let selectedDayKey = localDateKey();
+      let heatmapYear = new Date().getFullYear();
+
+      function localDateKey(date = new Date()) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+
+      function emptyStateData() {
+        return { profile: null, days: {}, lastDate: localDateKey() };
+      }
+
+      function loadState() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+          if (!saved || typeof saved !== 'object') return emptyStateData();
+          return { profile: saved.profile || null, days: saved.days || {}, lastDate: saved.lastDate || localDateKey() };
+        } catch (_) {
+          setTimeout(() => showToast('儲存的資料無法讀取，請重新設定。', true), 0);
+          return emptyStateData();
+        }
+      }
+
+      function saveState() {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+        catch (_) { showToast('無法保存資料，重新整理後紀錄可能消失。', true); }
+      }
+
+      function ensureToday() {
+        const today = localDateKey();
+        if (!state.days[today]) state.days[today] = { records: [], celebrated: false, goal: Number(state.profile?.goal) || DEFAULT_GOAL };
+        if (!state.days[today].goal) state.days[today].goal = Number(state.profile?.goal) || DEFAULT_GOAL;
+        state.lastDate = today;
+        return state.days[today];
+      }
+
+      function formatNumber(number) { return Math.round(number).toLocaleString('zh-TW'); }
+      function totalToday() { return ensureToday().records.reduce((sum, record) => sum + Number(record.amount || 0), 0); }
+      function dayTotal(day) { return (day?.records || []).reduce((sum, record) => sum + Number(record.amount || 0), 0); }
+      function dayGoal(day) { return Number(day?.goal) || Number(state.profile?.goal) || DEFAULT_GOAL; }
+      function levelFor(total, goal) {
+        const ratio = goal ? total / goal : 0;
+        if (ratio >= 1) return 4;
+        if (ratio >= .67) return 3;
+        if (ratio >= .34) return 2;
+        if (ratio > 0) return 1;
+        return 0;
+      }
+
+      function render() {
+        const today = ensureToday();
+        const goal = Number(state.profile?.goal) || DEFAULT_GOAL;
+        const total = totalToday();
+        const percent = Math.round((total / goal) * 100);
+        const visualPercent = Math.min(100, Math.max(0, percent));
+        const date = new Intl.DateTimeFormat('zh-TW', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' }).format(new Date());
+        elements.todayLabel.textContent = date;
+        elements.totalAmount.textContent = formatNumber(total);
+        elements.waterLevel.style.height = `${visualPercent}%`;
+        elements.barFill.style.width = `${visualPercent}%`;
+        elements.progressBar.setAttribute('aria-valuenow', String(visualPercent));
+        elements.percentLabel.textContent = `${percent}%`;
+
+        if (total === 0) {
+          elements.progressCopy.innerHTML = `目標 <strong>${formatNumber(goal)}ml</strong>，今天從第一杯開始`;
+          elements.remainingLabel.textContent = `還差 ${formatNumber(goal)}ml`;
+          elements.tipText.textContent = '把水放在看得到的地方，更容易記得補充水分。';
+        } else if (total < goal) {
+          elements.progressCopy.innerHTML = `已完成今日目標的 <strong>${percent}%</strong>`;
+          elements.remainingLabel.textContent = `還差 ${formatNumber(goal - total)}ml`;
+          elements.tipText.textContent = percent >= 75 ? '快達成了！依照身體感受，慢慢補充水分。' : '少量、多次補充，比一次喝很多更容易養成習慣。';
+        } else {
+          elements.progressCopy.innerHTML = `今日目標 <strong>${formatNumber(goal)}ml</strong> 已完成`;
+          elements.remainingLabel.textContent = total === goal ? '剛好達標' : `超過目標 ${formatNumber(total - goal)}ml`;
+          elements.tipText.textContent = '已經達標了！接下來請依照口渴程度與身體狀況補充。';
+        }
+
+        elements.recordList.innerHTML = '';
+        const records = [...today.records].sort((a, b) => b.timestamp - a.timestamp);
+        records.forEach((record) => {
+          const li = document.createElement('li');
+          li.className = 'record';
+          const time = new Intl.DateTimeFormat('zh-TW', { hour: 'numeric', minute: '2-digit' }).format(new Date(record.timestamp));
+          li.innerHTML = `<span class="record-icon">${icons.drop}</span><div><strong>${formatNumber(record.amount)}ml</strong><time datetime="${new Date(record.timestamp).toISOString()}">${time}</time></div><button class="delete-record" type="button" data-delete-id="${record.id}" aria-label="刪除 ${record.amount}ml 紀錄">${icons.trash}</button>`;
+          elements.recordList.appendChild(li);
+        });
+        elements.emptyState.classList.toggle('hidden', records.length > 0);
+        elements.recordCount.textContent = `共 ${records.length} 筆`;
+        elements.clearButton.disabled = records.length === 0;
+        renderCalendar();
+        renderAchievements();
+        saveState();
+      }
+
+      function renderCalendar() {
+        if (!elements.calendarGrid) return;
+        const year = calendarDate.getFullYear();
+        const month = calendarDate.getMonth();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const firstWeekday = new Date(year, month, 1).getDay();
+        const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+        const monthDays = Object.entries(state.days).filter(([key]) => key.startsWith(prefix));
+        const monthTotal = monthDays.reduce((sum, [, day]) => sum + dayTotal(day), 0);
+        const recordedDays = monthDays.filter(([, day]) => dayTotal(day) > 0).length;
+        const goalDays = monthDays.filter(([, day]) => dayTotal(day) >= dayGoal(day)).length;
+        elements.monthLabel.textContent = `${year}年${month + 1}月`;
+        elements.monthTotal.textContent = `${formatNumber(monthTotal)}ml`;
+        elements.monthGoalDays.textContent = `${goalDays} 天`;
+        elements.monthAverage.textContent = `${formatNumber(recordedDays ? monthTotal / recordedDays : 0)}ml`;
+        elements.calendarGrid.innerHTML = '';
+        ['日', '一', '二', '三', '四', '五', '六'].forEach((label) => {
+          const item = document.createElement('div'); item.className = 'weekday'; item.textContent = label; elements.calendarGrid.appendChild(item);
+        });
+        for (let i = 0; i < firstWeekday; i++) {
+          const blank = document.createElement('div'); blank.className = 'calendar-blank'; blank.setAttribute('aria-hidden', 'true'); elements.calendarGrid.appendChild(blank);
+        }
+        for (let date = 1; date <= daysInMonth; date++) {
+          const key = `${prefix}-${String(date).padStart(2, '0')}`;
+          const day = state.days[key];
+          const total = dayTotal(day);
+          const goal = dayGoal(day);
+          const level = levelFor(total, goal);
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = `calendar-day level-${level}${key === selectedDayKey ? ' selected' : ''}${key === localDateKey() ? ' today-day' : ''}`;
+          button.dataset.day = key;
+          button.setAttribute('aria-label', `${month + 1}月${date}日，${total ? `已喝${total}毫升` : '沒有紀錄'}`);
+          button.innerHTML = `<span>${date}</span>${total ? `<small>${formatNumber(total)}</small>` : ''}`;
+          elements.calendarGrid.appendChild(button);
+        }
+        renderDayDetail(selectedDayKey);
+      }
+
+      function renderDayDetail(key) {
+        const date = new Date(`${key}T12:00:00`);
+        if (Number.isNaN(date.getTime())) return;
+        const day = state.days[key];
+        const total = dayTotal(day);
+        const goal = dayGoal(day);
+        const title = new Intl.DateTimeFormat('zh-TW', { month: 'long', day: 'numeric', weekday: 'short' }).format(date);
+        const status = total >= goal ? `已達成 ${formatNumber(goal)}ml 目標` : total ? `還差 ${formatNumber(goal - total)}ml` : '當天沒有喝水紀錄';
+        const records = [...(day?.records || [])].sort((a, b) => b.timestamp - a.timestamp);
+        elements.dayDetail.innerHTML = `<h3>${title}</h3><div class="day-total">${formatNumber(total)}ml</div><p class="day-status">${status}</p>${records.length ? `<ul class="mini-records">${records.map((record) => `<li><strong>${formatNumber(record.amount)}ml</strong><span>${new Intl.DateTimeFormat('zh-TW', { hour: 'numeric', minute: '2-digit' }).format(new Date(record.timestamp))}</span></li>`).join('')}</ul>` : '<p class="mini-empty">有喝水時回到「今日紀錄」加入，資料就會自動出現在這裡。</p>'}`;
+      }
+
+      function achievementStats() {
+        const completedKeys = Object.keys(state.days).filter((key) => dayTotal(state.days[key]) >= dayGoal(state.days[key])).sort();
+        let longest = 0;
+        let current = 0;
+        let previous = null;
+        completedKeys.forEach((key) => {
+          const [y, m, d] = key.split('-').map(Number);
+          const serial = Date.UTC(y, m - 1, d) / 86400000;
+          current = previous !== null && serial === previous + 1 ? current + 1 : 1;
+          longest = Math.max(longest, current);
+          previous = serial;
+        });
+        const perMonth = {};
+        completedKeys.forEach((key) => { const month = key.slice(0, 7); perMonth[month] = (perMonth[month] || 0) + 1; });
+        return { completed: completedKeys.length, longest, bestMonth: Math.max(0, ...Object.values(perMonth)) };
+      }
+
+      function renderAchievements() {
+        if (!elements.badgeGrid) return;
+        const stats = achievementStats();
+        const badges = [
+          { icon: '💧', name: '第一滴榮耀', description: '完成第一個每日喝水目標', value: stats.completed, target: 1 },
+          { icon: '🌊', name: '三日水波', description: '連續 3 天完成每日目標', value: stats.longest, target: 3 },
+          { icon: '🏆', name: '一週冠軍', description: '連續 7 天完成每日目標', value: stats.longest, target: 7 },
+          { icon: '⭐', name: '月光十日', description: '同一個月累積達標 10 天', value: stats.bestMonth, target: 10 },
+          { icon: '👑', name: '水分達人', description: '同一個月累積達標 20 天', value: stats.bestMonth, target: 20 },
+          { icon: '🥇', name: '恆心典範', description: '累積完成 30 個每日目標', value: stats.completed, target: 30 }
+        ];
+        const unlocked = badges.filter((badge) => badge.value >= badge.target).length;
+        elements.allGoalDays.textContent = `${stats.completed} 天`;
+        elements.longestStreak.textContent = `${stats.longest} 天`;
+        elements.unlockedCount.textContent = `${unlocked} / ${badges.length}`;
+        elements.badgeGrid.innerHTML = badges.map((badge) => {
+          const done = badge.value >= badge.target;
+          const progress = Math.min(100, badge.value / badge.target * 100);
+          return `<article class="badge-card${done ? '' : ' locked'}"><div class="badge-top"><span class="badge-icon" aria-hidden="true">${badge.icon}</span><span class="unlock-pill">${done ? '已解鎖' : '尚未解鎖'}</span></div><h4>${badge.name}</h4><p>${badge.description}</p><div class="badge-progress"><i style="width:${progress}%"></i></div><small>${Math.min(badge.value, badge.target)} / ${badge.target}</small></article>`;
+        }).join('');
+        renderHeatmap();
+      }
+
+      function renderHeatmap() {
+        const start = new Date(heatmapYear, 0, 1);
+        const end = new Date(heatmapYear, 11, 31);
+        elements.yearLabel.textContent = `${heatmapYear}年`;
+        elements.heatmapGrid.innerHTML = '';
+        for (let i = 0; i < start.getDay(); i++) {
+          const blank = document.createElement('i'); blank.className = 'heat-cell blank'; elements.heatmapGrid.appendChild(blank);
+        }
+        for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+          const key = localDateKey(date);
+          const day = state.days[key];
+          const total = dayTotal(day);
+          const goal = dayGoal(day);
+          const level = levelFor(total, goal);
+          const cell = document.createElement('i');
+          cell.className = `heat-cell level-${level}`;
+          cell.title = `${key}：${formatNumber(total)}ml / ${formatNumber(goal)}ml`;
+          cell.setAttribute('aria-label', cell.title);
+          elements.heatmapGrid.appendChild(cell);
+        }
+      }
+
+      function switchView(view) {
+        $$('.view-tab').forEach((tab) => { const active = tab.dataset.view === view; tab.classList.toggle('active', active); tab.setAttribute('aria-selected', String(active)); });
+        $('#homeView').hidden = view !== 'home';
+        $('#calendarView').hidden = view !== 'calendar';
+        $('#achievementsView').hidden = view !== 'achievements';
+        if (view === 'calendar') renderCalendar();
+        if (view === 'achievements') renderAchievements();
+        window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      }
+
+      function addWater(amount, source = 'custom') {
+        checkDateChange();
+        const before = totalToday();
+        const goal = Number(state.profile?.goal) || DEFAULT_GOAL;
+        ensureToday().records.push({ id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, amount, timestamp: Date.now(), source });
+        render();
+        showToast(`已記錄 ${formatNumber(amount)}ml！`);
+        if (before < goal && totalToday() >= goal && !ensureToday().celebrated) celebrate();
+      }
+
+      function validateCustom() {
+        const raw = elements.customAmount.value.trim();
+        const value = Number(raw);
+        let message = '';
+        if (!raw) message = '請輸入喝水容量。';
+        else if (!Number.isInteger(value)) message = '請輸入完整的毫升數，例如 250。';
+        else if (value <= 0) message = '喝水容量必須大於 0ml。';
+        else if (value > 2000) message = '單次紀錄最多為 2,000ml，請確認輸入是否正確。';
+        elements.customError.textContent = message;
+        elements.customAmount.classList.toggle('invalid', Boolean(message));
+        return message ? null : value;
+      }
+
+      function validateProfile() {
+        const height = Number(elements.heightInput.value);
+        const weight = Number(elements.weightInput.value);
+        const goal = Number(elements.goalInput.value);
+        elements.heightError.textContent = !elements.heightInput.value ? '請輸入身高。' : height < 80 || height > 250 ? '請輸入 80～250 公分。' : '';
+        elements.weightError.textContent = !elements.weightInput.value ? '請輸入體重。' : weight < 20 || weight > 300 ? '請輸入 20～300 公斤。' : '';
+        elements.goalError.textContent = !elements.goalInput.value ? '請輸入每日目標。' : !Number.isInteger(goal) || goal < 500 || goal > 10000 ? '目標需為 500～10,000ml 的整數。' : '';
+        [elements.heightInput, elements.weightInput, elements.goalInput].forEach((input) => input.classList.toggle('invalid', Boolean(input.parentElement.querySelector('small')?.textContent)));
+        return !elements.heightError.textContent && !elements.weightError.textContent && !elements.goalError.textContent ? { height, weight, goal } : null;
+      }
+
+      function calculateRecommendation() {
+        const height = Number(elements.heightInput.value);
+        const weight = Number(elements.weightInput.value);
+        elements.heightError.textContent = !elements.heightInput.value ? '請輸入身高。' : height < 80 || height > 250 ? '請輸入 80～250 公分。' : '';
+        elements.weightError.textContent = !elements.weightInput.value ? '請輸入體重。' : weight < 20 || weight > 300 ? '請輸入 20～300 公斤。' : '';
+        if (elements.heightError.textContent || elements.weightError.textContent) return;
+        const raw = weight * 30;
+        const recommended = Math.min(4000, Math.max(1000, Math.round(raw / 50) * 50));
+        const bmi = weight / Math.pow(height / 100, 2);
+        currentRecommendation = recommended;
+        elements.recommendedAmount.textContent = `${formatNumber(recommended)}ml`;
+        elements.bmiValue.textContent = bmi.toFixed(1);
+        elements.recommendation.classList.remove('hidden');
+        elements.adoptButton.classList.remove('hidden');
+        if (!elements.goalInput.value || !state.profile) elements.goalInput.value = recommended;
+      }
+
+      function openProfile(initial = false) {
+        elements.profileTitle.textContent = initial ? '建立你的喝水目標' : '調整個人設定';
+        elements.profileSubtitle.textContent = initial ? '輸入身高和體重，我們會提供一個每日參考值。' : '修改資料後，可重新計算適合你的參考值。';
+        elements.profileClose.classList.toggle('hidden', initial);
+        elements.cancelProfile.classList.toggle('hidden', initial);
+        if (state.profile) {
+          elements.heightInput.value = state.profile.height;
+          elements.weightInput.value = state.profile.weight;
+          elements.goalInput.value = state.profile.goal;
+          calculateRecommendation();
+        }
+        if (!elements.profileDialog.open) elements.profileDialog.showModal();
+        setTimeout(() => elements.heightInput.focus(), 50);
+      }
+
+      function requestConfirm(message, action, buttonText = '確定刪除') {
+        elements.confirmMessage.textContent = message;
+        elements.confirmAction.textContent = buttonText;
+        pendingConfirm = action;
+        elements.confirmDialog.showModal();
+      }
+
+      function celebrate() {
+        ensureToday().celebrated = true;
+        saveState();
+        elements.celebrationCopy.textContent = `你今天已喝了 ${formatNumber(totalToday())}ml，做得很好！`;
+        elements.celebrationDialog.showModal();
+        if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          const colors = ['#23a9eb', '#7ed7f7', '#087cbe', '#22a06b', '#ffd166'];
+          for (let i = 0; i < 42; i++) {
+            const piece = document.createElement('i');
+            piece.className = 'confetti-piece';
+            piece.style.left = `${Math.random() * 100}vw`;
+            piece.style.background = colors[i % colors.length];
+            piece.style.setProperty('--drift', `${(Math.random() - .5) * 220}px`);
+            piece.style.animationDelay = `${Math.random() * .5}s`;
+            document.body.appendChild(piece);
+            setTimeout(() => piece.remove(), 3100);
+          }
+        }
+      }
+
+      function showToast(message, isError = false) {
+        const toast = document.createElement('div');
+        toast.className = `toast${isError ? ' error' : ''}`;
+        toast.textContent = message;
+        elements.toastRegion.appendChild(toast);
+        setTimeout(() => toast.remove(), 2600);
+      }
+
+      function checkDateChange() {
+        const today = localDateKey();
+        if (state.lastDate !== today) { state.lastDate = today; ensureToday(); render(); showToast('新的一天開始了，今天也一起補充水分！'); }
+      }
+
+      $$('.quick-button').forEach((button) => button.addEventListener('click', () => addWater(Number(button.dataset.amount), `quick-${button.dataset.amount}`)));
+      $$('.view-tab').forEach((button) => button.addEventListener('click', () => switchView(button.dataset.view)));
+      elements.prevMonth.addEventListener('click', () => { calendarDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1); selectedDayKey = localDateKey(calendarDate); renderCalendar(); });
+      elements.nextMonth.addEventListener('click', () => { calendarDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1); selectedDayKey = localDateKey(calendarDate); renderCalendar(); });
+      elements.calendarGrid.addEventListener('click', (event) => { const button = event.target.closest('[data-day]'); if (!button) return; selectedDayKey = button.dataset.day; renderCalendar(); });
+      elements.prevYear.addEventListener('click', () => { heatmapYear -= 1; renderHeatmap(); });
+      elements.nextYear.addEventListener('click', () => { heatmapYear += 1; renderHeatmap(); });
+      elements.customForm.addEventListener('submit', (event) => { event.preventDefault(); const value = validateCustom(); if (value) { addWater(value); elements.customAmount.value = ''; elements.customError.textContent = ''; elements.customAmount.classList.remove('invalid'); } });
+      elements.customAmount.addEventListener('input', () => { elements.customError.textContent = ''; elements.customAmount.classList.remove('invalid'); });
+      elements.settingsButton.addEventListener('click', () => openProfile(false));
+      elements.profileClose.addEventListener('click', () => elements.profileDialog.close());
+      elements.cancelProfile.addEventListener('click', () => elements.profileDialog.close());
+      elements.calculateButton.addEventListener('click', calculateRecommendation);
+      elements.adoptButton.addEventListener('click', () => { if (currentRecommendation) elements.goalInput.value = currentRecommendation; });
+      elements.profileForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const profile = validateProfile();
+        if (!profile) return;
+        const wasNew = !state.profile;
+        state.profile = { ...profile, updatedAt: Date.now() };
+        ensureToday().goal = profile.goal;
+        saveState(); render(); elements.profileDialog.close();
+        showToast(wasNew ? `設定完成！今天的目標是 ${formatNumber(profile.goal)}ml。` : '個人設定已更新。');
+      });
+      elements.recordList.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-delete-id]');
+        if (!button) return;
+        const day = ensureToday();
+        const record = day.records.find((item) => item.id === button.dataset.deleteId);
+        if (!record) return;
+        requestConfirm(`確定要刪除這筆 ${formatNumber(record.amount)}ml 的紀錄嗎？`, () => {
+          day.records = day.records.filter((item) => item.id !== record.id);
+          if (totalToday() < dayGoal(day)) day.celebrated = false;
+          render(); showToast(`已刪除 ${formatNumber(record.amount)}ml 紀錄。`);
+        });
+      });
+      elements.clearButton.addEventListener('click', () => {
+        const count = ensureToday().records.length;
+        requestConfirm(`確定要清除今天全部 ${count} 筆紀錄嗎？清除後無法復原。`, () => {
+          state.days[localDateKey()] = { records: [], celebrated: false, goal: Number(state.profile?.goal) || DEFAULT_GOAL };
+          render(); showToast('今天的喝水紀錄已全部清除。');
+        }, '全部清除');
+      });
+      elements.confirmCancel.addEventListener('click', () => { pendingConfirm = null; elements.confirmDialog.close(); });
+      elements.confirmAction.addEventListener('click', () => { const action = pendingConfirm; pendingConfirm = null; elements.confirmDialog.close(); if (action) action(); });
+      elements.celebrationClose.addEventListener('click', () => elements.celebrationDialog.close());
+
+      function registerWebMCP() {
+        const context = document.modelContext;
+        if (!context?.registerTool) return;
+        try {
+          context.registerTool({
+            name: 'add_water_record', title: '新增喝水紀錄', description: '為今天新增一筆喝水紀錄，容量單位為毫升。',
+            inputSchema: { type: 'object', properties: { amount: { type: 'integer', minimum: 1, maximum: 2000 } }, required: ['amount'], additionalProperties: false },
+            annotations: { readOnlyHint: false, untrustedContentHint: false },
+            execute(input) { const amount = Number(input?.amount); if (!Number.isInteger(amount) || amount < 1 || amount > 2000) throw new Error('容量必須是 1～2,000ml 的整數'); addWater(amount, 'webmcp'); return { success: true, amount, total: totalToday(), goal: state.profile?.goal }; }
+          });
+          context.registerTool({
+            name: 'read_water_progress', title: '查看喝水進度', description: '讀取今天的喝水總量、目標與完成百分比。',
+            inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, untrustedContentHint: false },
+            execute() { const total = totalToday(); const goal = Number(state.profile?.goal) || DEFAULT_GOAL; return { date: localDateKey(), total, goal, percent: Math.round(total / goal * 100), recordCount: ensureToday().records.length }; }
+          });
+        } catch (_) { /* 不支援 WebMCP 時維持一般網頁功能 */ }
+      }
+
+      render();
+      if (!state.profile) openProfile(true);
+      registerWebMCP();
+      setInterval(checkDateChange, 60000);
+    })();
+  </script>
+</body>
+</html>
