@@ -333,6 +333,23 @@
       background: var(--ocean-100);
     }
     .tip svg { flex: 0 0 auto; width: 20px; height: 20px; margin-top: 2px; }
+    .daily-badge {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 12px;
+      padding: 14px 16px;
+      text-align: left;
+      border: 1px solid #f2d27a;
+      border-radius: 16px;
+      background: linear-gradient(145deg, #fffaf0, #fff2c8);
+    }
+    .daily-badge-icon { display: grid; place-items: center; flex: 0 0 auto; width: 40px; height: 40px; border-radius: 13px; background: #ffd166; font-size: 1.25rem; }
+    .daily-badge strong { display: block; color: #765000; font-size: .9rem; }
+    .daily-badge span:last-child { display: block; margin-top: 3px; color: #806d42; font-size: .78rem; line-height: 1.45; }
+    .daily-badge.completed { border-color: #8fdccb; background: linear-gradient(145deg, #f0fffb, #d9f8f0); }
+    .daily-badge.completed .daily-badge-icon { background: #22a06b; }
+    .daily-badge.completed strong { color: #087264; }
 
     .right-column { display: grid; gap: 22px; }
     .action-card, .history-card { padding: 28px; }
@@ -544,6 +561,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2a7 7 0 0 0-4 12.7V18h8v-3.3A7 7 0 0 0 12 2Z"/><path d="M9 22h6M9 18h6"/></svg>
           <span id="tipText">把水放在看得到的地方，更容易記得補充水分。</span>
         </div>
+        <div class="daily-badge" id="dailyBadge">
+          <span class="daily-badge-icon" aria-hidden="true">🏆</span>
+          <span><strong id="dailyBadgeTitle">今日徽章進度</strong><span id="dailyBadgeText">達到今日目標後，徽章會立即解鎖。</span></span>
+        </div>
       </article>
 
       <div class="right-column">
@@ -682,6 +703,7 @@
         todayLabel: $('#todayLabel'), totalAmount: $('#totalAmount'), progressCopy: $('#progressCopy'),
         progressBar: $('#progressBar'), barFill: $('#barFill'), percentLabel: $('#percentLabel'),
         remainingLabel: $('#remainingLabel'), waterLevel: $('#waterLevel'), tipText: $('#tipText'),
+        dailyBadge: $('#dailyBadge'), dailyBadgeTitle: $('#dailyBadgeTitle'), dailyBadgeText: $('#dailyBadgeText'),
         recordList: $('#recordList'), recordCount: $('#recordCount'), emptyState: $('#emptyState'),
         clearButton: $('#clearButton'), customForm: $('#customForm'), customAmount: $('#customAmount'),
         customError: $('#customError'), settingsButton: $('#settingsButton'), profileDialog: $('#profileDialog'),
@@ -757,7 +779,7 @@
 
       function render() {
         const today = ensureToday();
-        const goal = Number(state.profile?.goal) || DEFAULT_GOAL;
+        const goal = dayGoal(today);
         const total = totalToday();
         const percent = Math.round((total / goal) * 100);
         const visualPercent = Math.min(100, Math.max(0, percent));
@@ -782,6 +804,13 @@
           elements.remainingLabel.textContent = total === goal ? '剛好達標' : `超過目標 ${formatNumber(total - goal)}ml`;
           elements.tipText.textContent = '已經達標了！接下來請依照口渴程度與身體狀況補充。';
         }
+
+        const completedToday = total >= goal;
+        elements.dailyBadge.classList.toggle('completed', completedToday);
+        elements.dailyBadgeTitle.textContent = completedToday ? '今日目標已達成' : '今日徽章進度';
+        elements.dailyBadgeText.textContent = completedToday
+          ? '成就進度已更新，前往「成就獎盃」查看新徽章。'
+          : `再喝 ${formatNumber(goal - total)}ml，即可完成今天的達標紀錄。`;
 
         elements.recordList.innerHTML = '';
         const records = [...today.records].sort((a, b) => b.timestamp - a.timestamp);
@@ -868,17 +897,21 @@
         return { completed: completedKeys.length, longest, bestMonth: Math.max(0, ...Object.values(perMonth)) };
       }
 
+      function badgeDefinitions(stats = achievementStats()) {
+        return [
+          { id: 'first-goal', icon: '💧', name: '第一滴榮耀', description: '完成第一個每日喝水目標', value: stats.completed, target: 1 },
+          { id: 'three-streak', icon: '🌊', name: '三日水波', description: '連續 3 天完成每日目標', value: stats.longest, target: 3 },
+          { id: 'seven-streak', icon: '🏆', name: '一週冠軍', description: '連續 7 天完成每日目標', value: stats.longest, target: 7 },
+          { id: 'month-ten', icon: '⭐', name: '月光十日', description: '同一個月累積達標 10 天', value: stats.bestMonth, target: 10 },
+          { id: 'month-twenty', icon: '👑', name: '水分達人', description: '同一個月累積達標 20 天', value: stats.bestMonth, target: 20 },
+          { id: 'total-thirty', icon: '🥇', name: '恆心典範', description: '累積完成 30 個每日目標', value: stats.completed, target: 30 }
+        ];
+      }
+
       function renderAchievements() {
         if (!elements.badgeGrid) return;
         const stats = achievementStats();
-        const badges = [
-          { icon: '💧', name: '第一滴榮耀', description: '完成第一個每日喝水目標', value: stats.completed, target: 1 },
-          { icon: '🌊', name: '三日水波', description: '連續 3 天完成每日目標', value: stats.longest, target: 3 },
-          { icon: '🏆', name: '一週冠軍', description: '連續 7 天完成每日目標', value: stats.longest, target: 7 },
-          { icon: '⭐', name: '月光十日', description: '同一個月累積達標 10 天', value: stats.bestMonth, target: 10 },
-          { icon: '👑', name: '水分達人', description: '同一個月累積達標 20 天', value: stats.bestMonth, target: 20 },
-          { icon: '🥇', name: '恆心典範', description: '累積完成 30 個每日目標', value: stats.completed, target: 30 }
-        ];
+        const badges = badgeDefinitions(stats);
         const unlocked = badges.filter((badge) => badge.value >= badge.target).length;
         elements.allGoalDays.textContent = `${stats.completed} 天`;
         elements.longestStreak.textContent = `${stats.longest} 天`;
@@ -925,12 +958,14 @@
 
       function addWater(amount, source = 'custom') {
         checkDateChange();
+        const beforeUnlocked = new Set(badgeDefinitions().filter((badge) => badge.value >= badge.target).map((badge) => badge.id));
         const before = totalToday();
-        const goal = Number(state.profile?.goal) || DEFAULT_GOAL;
+        const goal = dayGoal(ensureToday());
         ensureToday().records.push({ id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, amount, timestamp: Date.now(), source });
         render();
         showToast(`已記錄 ${formatNumber(amount)}ml！`);
-        if (before < goal && totalToday() >= goal && !ensureToday().celebrated) celebrate();
+        const newlyUnlocked = badgeDefinitions().filter((badge) => badge.value >= badge.target && !beforeUnlocked.has(badge.id));
+        if (before < goal && totalToday() >= goal && !ensureToday().celebrated) celebrate(newlyUnlocked);
       }
 
       function validateCustom() {
@@ -996,10 +1031,14 @@
         elements.confirmDialog.showModal();
       }
 
-      function celebrate() {
+      function celebrate(newlyUnlocked = []) {
         ensureToday().celebrated = true;
         saveState();
-        elements.celebrationCopy.textContent = `你今天已喝了 ${formatNumber(totalToday())}ml，做得很好！`;
+        $('#celebrationTitle').textContent = newlyUnlocked.length ? '新徽章解鎖！' : '今日目標達成！';
+        const badgeNames = newlyUnlocked.map((badge) => `「${badge.name}」`).join('、');
+        elements.celebrationCopy.textContent = newlyUnlocked.length
+          ? `你今天已喝了 ${formatNumber(totalToday())}ml，獲得 ${badgeNames} 徽章！`
+          : `你今天已喝了 ${formatNumber(totalToday())}ml，成就進度已更新！`;
         elements.celebrationDialog.showModal();
         if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
           const colors = ['#23a9eb', '#7ed7f7', '#087cbe', '#22a06b', '#ffd166'];
@@ -1089,7 +1128,7 @@
           context.registerTool({
             name: 'read_water_progress', title: '查看喝水進度', description: '讀取今天的喝水總量、目標與完成百分比。',
             inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, untrustedContentHint: false },
-            execute() { const total = totalToday(); const goal = Number(state.profile?.goal) || DEFAULT_GOAL; return { date: localDateKey(), total, goal, percent: Math.round(total / goal * 100), recordCount: ensureToday().records.length }; }
+            execute() { const total = totalToday(); const goal = dayGoal(ensureToday()); return { date: localDateKey(), total, goal, percent: Math.round(total / goal * 100), recordCount: ensureToday().records.length }; }
           });
         } catch (_) { /* 不支援 WebMCP 時維持一般網頁功能 */ }
       }
